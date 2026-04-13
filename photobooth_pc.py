@@ -58,7 +58,7 @@ class Camera:
                 from picamera2 import Picamera2
                 self.picam2 = Picamera2()
                 cfg = self.picam2.create_preview_configuration(
-                    main={"size": (self.largura, self.altura), "format": "BGR888"}
+                    main={"size": (self.largura, self.altura)}
                 )
                 self.picam2.configure(cfg)
                 self.picam2.start()
@@ -91,11 +91,9 @@ class Camera:
         """Retorna (True, frame_bgr) ou (False, None)."""
         if self.tipo == "picamera2":
             try:
-                frame = self.picam2.capture_array()
-                # Remove canal alpha se presente
-                if frame.ndim == 3 and frame.shape[2] == 4:
-                    frame = frame[:, :, :3]
-                # BGR888 ja retorna BGR — pronto para OpenCV, sem conversao
+                # Captura como PIL Image (sempre RGB correto) e converte para BGR
+                img_pil = self.picam2.capture_image("main")
+                frame = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
                 return True, frame
             except Exception:
                 return False, None
