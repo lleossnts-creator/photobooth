@@ -58,7 +58,7 @@ class Camera:
                 from picamera2 import Picamera2
                 self.picam2 = Picamera2()
                 cfg = self.picam2.create_preview_configuration(
-                    main={"size": (self.largura, self.altura), "format": "BGR888"}
+                    main={"size": (self.largura, self.altura), "format": "RGB888"}
                 )
                 self.picam2.configure(cfg)
                 self.picam2.start()
@@ -92,7 +92,8 @@ class Camera:
         if self.tipo == "picamera2":
             try:
                 frame = self.picam2.capture_array()
-                # picamera2 com BGR888 ja retorna BGR — pronto para OpenCV
+                # picamera2 com RGB888 retorna RGB — converte para BGR (OpenCV)
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 return True, frame
             except Exception:
                 return False, None
