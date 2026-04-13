@@ -1,0 +1,67 @@
+{
+    "evento": {
+        "nome": "Teste no PC"
+    },
+
+    "impressora": {
+        "largura_pixels": 576,
+        "_explicacao": "384 para 58mm, 576 para 80mm",
+        "vendor_id": "0x0416",
+        "product_id": "0x5011",
+        "nome_windows": "POS-80",
+        "_como_descobrir": "Mac/Linux: lsusb  |  Windows: Gerenciador de Dispositivos > USB"
+    },
+
+    "logo": {
+        "ativar": true,
+        "arquivo": "assets/ANABE_Logo sem fundo (cor05).png",
+        "largura": 200
+    },
+
+    "texto_acima": {
+        "conteudo": "Bem",
+        "alinhamento": "center",
+        "negrito": false,
+        "tamanho": "normal",
+        "fonte": "a",
+        "_ajuda_tamanho": "normal | largo (2x largura) | alto (2x altura) | grande (2x tudo)",
+        "_ajuda_fonte": "a (fonte padrao, maior) | b (compacta, menor) | c (menor ainda, se a impressora suportar)"
+    },
+
+    "texto_abaixo": {
+        "conteudo": "Obrigado por participar!",
+        "alinhamento": "center",
+        "negrito": false,
+        "tamanho": "normal",
+        "fonte": "c"
+    },
+
+    "rodape": {
+        "conteudo": "@seupercvxcvxvfil",
+        "alinhamento": "center",
+        "negrito": false,
+        "tamanho": "normal",
+        "fonte": "c"
+    },
+
+    "foto": {
+        "largura": 600,
+        "altura": 400,
+        "moldura": true,
+        "espessura_moldura": 0
+    },
+
+    "espacamentos": {
+        "apos_logo": 3,
+        "apos_texto_acima": 2,
+        "apos_foto": 2,
+        "apos_texto_abaixo": 1,
+        "margem_inferior": 5    },
+
+    "countdown": {
+        "segundos": 3
+    },
+
+    "modo_teste": false
+}
+

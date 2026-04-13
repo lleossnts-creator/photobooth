@@ -1,0 +1,11 @@
+# Dependencias para Raspberry Pi 4
+#
+# IMPORTANTE: opencv e picamera2 devem ser instalados via apt-get, NAO pip.
+# Execute ./install_rpi.sh que faz tudo automaticamente.
+#
+# Instale manualmente apenas se nao usar o script:
+#   sudo apt-get install python3-opencv python3-picamera2 python3-pil
+#   pip3 install python-escpos pyusb
+
+python-escpos
+pyusb

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Photobooth
+Comment=Receipt Photobooth - Camera Module 3
+Exec=/home/pi/photobooth/start_photobooth.sh
+Terminal=true
+Hidden=false
+X-GNOME-Autostart-enabled=true
