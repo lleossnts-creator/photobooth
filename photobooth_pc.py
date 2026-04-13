@@ -92,7 +92,10 @@ class Camera:
         if self.tipo == "picamera2":
             try:
                 frame = self.picam2.capture_array()
-                # picamera2 com RGB888 retorna RGB — converte para BGR (OpenCV)
+                # Remove canal alpha se presente (RGBA -> RGB)
+                if frame.ndim == 3 and frame.shape[2] == 4:
+                    frame = frame[:, :, :3]
+                # Converte RGB para BGR (OpenCV)
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 return True, frame
             except Exception:
