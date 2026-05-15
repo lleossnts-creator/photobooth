@@ -82,6 +82,12 @@ class LEDController:
         """Volta ao pattern aesthetic."""
         self._modo = "pattern"
 
+    def apagar(self):
+        """Apaga todos os LEDs."""
+        self._modo = "foto"  # mantem fora do pattern
+        self.pixels.fill((0, 0, 0))
+        self.pixels.show()
+
     def flash(self):
         """Flash branco rápido no momento da captura."""
         self.pixels.fill((255, 255, 255))
@@ -468,12 +474,12 @@ def salvar_teste(foto_pil, config):
 # ─────────────────────────────────────────────
 def mostrar_countdown(camera, segundos, window_name, leds=None):
     """Mostra countdown sobreposto no preview. Sincroniza com LEDs se disponivel."""
-    if leds:
-        leds.modo_foto()  # acende cor solida da foto
-
     for i in range(segundos, 0, -1):
+        if leds:
+            leds.modo_foto()  # acende no inicio de cada numero
+
         t_start = time.time()
-        while time.time() - t_start < 1.0:
+        while time.time() - t_start < 0.8:
             ret, frame = camera.read()
             if not ret:
                 continue
@@ -496,6 +502,11 @@ def mostrar_countdown(camera, segundos, window_name, leds=None):
 
             cv2.imshow(window_name, frame)
             cv2.waitKey(1)
+
+        # Apaga por 0.2s antes do proximo numero
+        if leds:
+            leds.apagar()
+            time.sleep(0.2)
 
         print(f"   {i}...")
 
