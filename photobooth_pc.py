@@ -31,10 +31,9 @@ from PIL import Image
 # ─────────────────────────────────────────────
 # GPIO BUTTON (descomente quando tiver o botao fisico)
 # ─────────────────────────────────────────────
-# from gpiozero import Button
-# BOTAO_GPIO_PINO = 17          # Pino BCM do botao (ajuste conforme sua fiacao)
-# botao_gpio = Button(BOTAO_GPIO_PINO, pull_up=True, bounce_time=0.1)
-botao_gpio = None               # Remova esta linha quando usar GPIO
+from gpiozero import Button
+BOTAO_GPIO_PINO = 23
+botao_gpio = Button(BOTAO_GPIO_PINO, pull_up=True, bounce_time=0.1)
 
 
 # ─────────────────────────────────────────────
@@ -377,9 +376,8 @@ def verificar_botao_pressionado(key):
     """Retorna True se ESPACO (teclado) ou botao GPIO foi pressionado."""
     if key == ord(" "):
         return True
-    # GPIO BUTTON: descomente abaixo quando tiver o botao fisico
-    # if botao_gpio and botao_gpio.is_pressed:
-    #     return True
+    if botao_gpio and botao_gpio.is_pressed:
+        return True
     return False
 
 
