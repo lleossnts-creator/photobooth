@@ -22,6 +22,7 @@ import json
 import os
 import sys
 import time
+import threading
 from datetime import datetime
 
 import cv2
@@ -34,6 +35,142 @@ from PIL import Image
 from gpiozero import Button
 BOTAO_GPIO_PINO = 23
 botao_gpio = Button(BOTAO_GPIO_PINO, pull_up=True, bounce_time=0.1)
+
+
+# ─────────────────────────────────────────────
+# Controle da fita de LED WS2812B
+# ─────────────────────────────────────────────
+class LEDController:
+    """Controla fita WS2812B via neopixel. Roda patterns em thread separada."""
+
+    def __init__(self, config):
+        import board
+        import neopixel
+
+        cfg = config.get("leds", {})
+        self.qtd        = cfg.get("quantidade", 30)
+        self.pattern    = cfg.get("pattern", "rainbow")
+        self.cor_pattern = tuple(cfg.get("cor_pattern", [255, 0, 128]))
+        self.cor_foto   = tuple(cfg.get("cor_foto", [255, 255, 255]))
+        self.velocidade = cfg.get("velocidade", 0.05)
+        brilho          = cfg.get("brilho", 0.5)
+
+        self.pixels = neopixel.NeoPixel(
+            board.D18, self.qtd,
+            brightness=brilho,
+            auto_write=False
+        )
+
+        self._modo     = "pattern"
+        self._rodando  = True
+        self._offset   = 0
+        self._brilho_v = 0
+        self._brilho_d = 1
+
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+        print("OK Fita LED inicializada!")
+
+    # ── Modos públicos ────────────────────────
+    def modo_foto(self):
+        """Interrompe o pattern e acende cor sólida para a foto."""
+        self._modo = "foto"
+        self.pixels.fill(self.cor_foto)
+        self.pixels.show()
+
+    def modo_pattern(self):
+        """Volta ao pattern aesthetic."""
+        self._modo = "pattern"
+
+    def flash(self):
+        """Flash branco rápido no momento da captura."""
+        self.pixels.fill((255, 255, 255))
+        self.pixels.show()
+        time.sleep(0.15)
+        self.pixels.fill(self.cor_foto)
+        self.pixels.show()
+
+    def parar(self):
+        self._rodando = False
+        self.pixels.fill((0, 0, 0))
+        self.pixels.show()
+
+    # ── Loop de pattern em background ────────
+    def _loop(self):
+        while self._rodando:
+            if self._modo != "pattern":
+                time.sleep(0.05)
+                continue
+
+            if self.pattern == "rainbow":
+                self._rainbow()
+                self._offset = (self._offset + 1) % 256
+
+            elif self.pattern == "breathing":
+                self._breathing()
+                self._brilho_v += self._brilho_d * 4
+                if self._brilho_v >= 255:
+                    self._brilho_v = 255
+                    self._brilho_d = -1
+                elif self._brilho_v <= 0:
+                    self._brilho_v = 0
+                    self._brilho_d = 1
+
+            elif self.pattern == "chase":
+                self._chase()
+                self._offset = (self._offset + 1) % self.qtd
+
+            elif self.pattern == "solid":
+                self.pixels.fill(self.cor_pattern)
+                self.pixels.show()
+                time.sleep(0.2)
+                continue
+
+            time.sleep(self.velocidade)
+
+    # ── Patterns ──────────────────────────────
+    def _wheel(self, pos):
+        pos = pos % 256
+        if pos < 85:
+            return (pos * 3, 255 - pos * 3, 0)
+        elif pos < 170:
+            pos -= 85
+            return (255 - pos * 3, 0, pos * 3)
+        else:
+            pos -= 170
+            return (0, pos * 3, 255 - pos * 3)
+
+    def _rainbow(self):
+        for i in range(self.qtd):
+            self.pixels[i] = self._wheel((i * 256 // self.qtd + self._offset) % 256)
+        self.pixels.show()
+
+    def _breathing(self):
+        r, g, b = self.cor_pattern
+        f = self._brilho_v / 255
+        self.pixels.fill((int(r * f), int(g * f), int(b * f)))
+        self.pixels.show()
+
+    def _chase(self):
+        self.pixels.fill((0, 0, 0))
+        for k in range(3):
+            self.pixels[(self._offset + k) % self.qtd] = self.cor_pattern
+        self.pixels.show()
+
+
+def inicializar_leds(config):
+    """Retorna LEDController ou None se desativado/sem biblioteca."""
+    if not config.get("leds", {}).get("ativar", False):
+        return None
+    try:
+        return LEDController(config)
+    except ImportError:
+        print("AVISO: neopixel/board nao encontrado — LEDs desativados.")
+        print("   Instale com: pip3 install rpi_ws281x adafruit-circuitpython-neopixel")
+        return None
+    except Exception as e:
+        print(f"AVISO: LED falhou ({e}) — continuando sem LED.")
+        return None
 
 
 # ─────────────────────────────────────────────
@@ -329,8 +466,11 @@ def salvar_teste(foto_pil, config):
 # ─────────────────────────────────────────────
 # Countdown na janela do OpenCV
 # ─────────────────────────────────────────────
-def mostrar_countdown(camera, segundos, window_name):
-    """Mostra countdown sobreposto no preview da webcam."""
+def mostrar_countdown(camera, segundos, window_name, leds=None):
+    """Mostra countdown sobreposto no preview. Sincroniza com LEDs se disponivel."""
+    if leds:
+        leds.modo_foto()  # acende cor solida da foto
+
     for i in range(segundos, 0, -1):
         t_start = time.time()
         while time.time() - t_start < 1.0:
@@ -359,12 +499,15 @@ def mostrar_countdown(camera, segundos, window_name):
 
         print(f"   {i}...")
 
-    # Flash branco
+    # Flash branco na tela e nos LEDs
     ret, frame = camera.read()
     if ret:
         flash = np.ones_like(frame) * 255
         cv2.imshow(window_name, flash.astype(np.uint8))
         cv2.waitKey(100)
+
+    if leds:
+        leds.flash()
 
     print("   CLICK!")
 
@@ -404,6 +547,9 @@ def main():
     print(f"   Countdown: {config.get('countdown', {}).get('segundos', 3)}s")
     print(f"   Modo teste: {'SIM' if config['modo_teste'] else 'NAO'}")
     print()
+
+    # Inicializa LEDs
+    leds = inicializar_leds(config)
 
     # Tenta conectar impressora
     impressora_inicial = None
@@ -473,7 +619,7 @@ def main():
             # Countdown
             segundos = config.get("countdown", {}).get("segundos", 3)
             print(f"Countdown: {segundos}s...")
-            mostrar_countdown(camera, segundos, window_name)
+            mostrar_countdown(camera, segundos, window_name, leds)
 
             # Captura frame real (sem espelho, resolucao total)
             ret, foto_frame = camera.read()
@@ -509,12 +655,18 @@ def main():
             else:
                 salvar_teste(foto_pil, config)
 
+            # Volta o pattern dos LEDs
+            if leds:
+                leds.modo_pattern()
+
             print("\nPronto pro proximo! Aperte ESPACO...\n")
             em_execucao = False
 
     # Limpeza
     camera.release()
     cv2.destroyAllWindows()
+    if leds:
+        leds.parar()
     print("\nPhotobooth encerrado!")
 
 

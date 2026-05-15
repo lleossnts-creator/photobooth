@@ -62,6 +62,18 @@
         "segundos": 3
     },
 
+    "leds": {
+        "ativar": true,
+        "quantidade": 30,
+        "brilho": 0.5,
+        "_ajuda_pattern": "rainbow | breathing | chase | solid",
+        "pattern": "rainbow",
+        "cor_pattern": [255, 0, 128],
+        "_ajuda_cor": "valores RGB de 0 a 255",
+        "cor_foto": [255, 255, 255],
+        "velocidade": 0.05
+    },
+
     "modo_teste": false
 }
 
