@@ -27,7 +27,7 @@ from datetime import datetime
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps, ImageEnhance
 
 # ─────────────────────────────────────────────
 # GPIO BUTTON (descomente quando tiver o botao fisico)
@@ -292,6 +292,33 @@ def conectar_impressora(config):
 
 
 # ─────────────────────────────────────────────
+# Ajuste automatico de brilho e contraste
+# ─────────────────────────────────────────────
+def auto_ajuste(img_pil, config):
+    """Normaliza brilho e contraste automaticamente para diferentes pessoas/iluminacoes."""
+    cfg = config.get("ajuste_auto", {})
+    if not cfg.get("ativar", True):
+        return img_pil
+
+    # Auto contraste: estica o histograma ignorando os X% mais escuros e mais claros
+    if cfg.get("auto_contraste", True):
+        cutoff = cfg.get("cutoff", 1)
+        img_pil = ImageOps.autocontrast(img_pil, cutoff=cutoff)
+
+    # Ajuste de brilho
+    brilho = cfg.get("brilho", 1.0)
+    if brilho != 1.0:
+        img_pil = ImageEnhance.Brightness(img_pil).enhance(brilho)
+
+    # Ajuste de saturacao (cores mais ou menos vibrantes)
+    saturacao = cfg.get("saturacao", 1.0)
+    if saturacao != 1.0:
+        img_pil = ImageEnhance.Color(img_pil).enhance(saturacao)
+
+    return img_pil
+
+
+# ─────────────────────────────────────────────
 # Prepara a foto (recorte + moldura)
 # ─────────────────────────────────────────────
 def preparar_foto(frame_bgr, config):
@@ -319,6 +346,9 @@ def preparar_foto(frame_bgr, config):
         img = img.crop((0, offset, img.width, offset + new_h))
 
     img = img.resize((foto_w, foto_h), Image.LANCZOS)
+
+    # Ajuste automatico de brilho e contraste
+    img = auto_ajuste(img, config)
 
     # Moldura
     if borda > 0:
