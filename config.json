@@ -76,7 +76,7 @@
 
     "leds": {
         "ativar": true,
-        "quantidade": 30,
+        "quantidade": 50,
         "brilho": 0.5,
         "_ajuda_pattern": "rainbow | breathing | chase | solid",
         "pattern": "rainbow",
